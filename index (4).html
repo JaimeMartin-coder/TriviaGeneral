@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brain Break Trivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1E1750;
+    --stage:#2A2080;
+    --glow:#4636C4;
+    --sun:#FFD23F;
+    --sun-deep:#B88F00;
+    --coral:#FF6B6B;
+    --mint:#5BE3B5;
+    --chalk:#F4F2FF;
+    --display:"Baloo 2","Trebuchet MS","Segoe UI",system-ui,sans-serif;
+    --body:"Nunito","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    min-height:100dvh;
+    font-family:var(--body);
+    color:var(--chalk);
+    background:radial-gradient(ellipse at 50% -10%, var(--glow) 0%, var(--stage) 42%, var(--ink) 100%) fixed;
+  }
+  .screen{display:none;min-height:100dvh;flex-direction:column;padding:clamp(14px,3vh,32px) clamp(16px,4vw,56px)}
+  .screen.active{display:flex}
+
+  /* Buttons */
+  .btn{
+    font-family:var(--display);font-weight:800;font-size:1.15rem;
+    min-height:48px;padding:6px 22px;border-radius:999px;cursor:pointer;
+    color:var(--chalk);background:transparent;border:3px solid var(--chalk);
+    transition:transform .08s ease, background .15s ease;
+  }
+  .btn:hover{background:rgba(244,242,255,.12)}
+  .btn:active{transform:translateY(2px)}
+  .btn.primary{color:var(--ink);background:var(--sun);border-color:var(--sun);box-shadow:0 5px 0 var(--sun-deep)}
+  .btn.primary:hover{background:#ffdd66}
+  .btn.primary:active{transform:translateY(4px);box-shadow:0 1px 0 var(--sun-deep)}
+  .btn:focus-visible,select:focus-visible{outline:4px solid var(--mint);outline-offset:3px}
+
+  /* Start + end */
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:22px;max-width:760px;margin:0 auto}
+  h1{font-family:var(--display);font-weight:800;font-size:clamp(2.8rem,9vw,6.5rem);line-height:.95;margin:0;color:var(--sun);text-shadow:6px 6px 0 var(--coral)}
+  .lede{font-size:clamp(1.05rem,2.2vw,1.4rem);line-height:1.45;margin:0;max-width:34em}
+  .settings{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
+  .settings label{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:1rem;text-align:left}
+  select{
+    font:800 1.1rem var(--body);color:var(--ink);background:var(--chalk);
+    border:3px solid var(--chalk);border-radius:14px;padding:10px 14px;min-height:46px;
+  }
+  .playbig{font-size:clamp(1.6rem,3.5vw,2.3rem);padding:10px 48px;min-height:72px;display:inline-flex;align-items:center;gap:14px}
+  .playbig svg{width:1em;height:1em}
+
+  /* Play screen */
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .chip{font-family:var(--display);font-weight:800;font-size:clamp(1rem,1.8vw,1.4rem);background:var(--ink);border:3px solid var(--mint);color:var(--mint);padding:4px 18px;border-radius:999px}
+  .meta{display:flex;gap:18px;font-weight:800;font-size:clamp(.95rem,1.6vw,1.25rem);opacity:.85}
+  .stage{flex:1;display:flex;flex-direction:column;justify-content:center;width:100%;max-width:1200px;margin:0 auto;padding:clamp(10px,2vh,28px) 0}
+  .qcard{
+    background:var(--sun);color:var(--ink);border-radius:30px;
+    padding:clamp(22px,4.5vh,52px) clamp(22px,4vw,60px);
+    box-shadow:10px 10px 0 var(--coral);
+    font-family:var(--display);font-weight:800;
+    font-size:clamp(1.5rem,3.6vw,3.3rem);line-height:1.15;text-align:center;
+    text-wrap:balance;
+  }
+  .zone{position:relative;min-height:clamp(170px,30vh,300px);margin-top:clamp(28px,5vh,52px);display:flex;align-items:center;justify-content:center}
+  .zone > div{width:100%}
+  #thinkView{text-align:center}
+  .count{font-family:var(--display);font-weight:800;font-size:clamp(4rem,12vh,8rem);line-height:1}
+  .bar{height:18px;border-radius:999px;background:rgba(244,242,255,.18);overflow:hidden;margin:12px auto 10px;max-width:760px}
+  #barFill{height:100%;width:100%;background:var(--sun);border-radius:999px;transition:width .1s linear}
+  .low #barFill{background:var(--coral)}
+  .low .count{color:var(--coral)}
+  .hint{margin:0;font-weight:800;font-size:clamp(1rem,1.8vw,1.35rem);opacity:.85}
+  .answer{
+    background:var(--mint);color:var(--ink);border-radius:26px;
+    padding:clamp(18px,3.5vh,38px) clamp(20px,3.5vw,52px);text-align:center;
+    box-shadow:10px 10px 0 var(--ink);
+    animation:pop .32s cubic-bezier(.2,1.2,.4,1);
+  }
+  .alabel{margin:0 0 4px;font-weight:800;font-size:clamp(1rem,1.6vw,1.25rem);opacity:.75}
+  #aText{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(1.9rem,5vw,4.2rem);line-height:1.05}
+  #aFact{margin:12px auto 0;max-width:40em;font-weight:600;font-size:clamp(1.05rem,2vw,1.55rem);line-height:1.4}
+  @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+  .pausedtag{
+    position:absolute;inset:0;margin:auto;width:max-content;height:max-content;
+    font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,4vw,3rem);
+    background:var(--ink);color:var(--sun);border:4px solid var(--sun);padding:8px 34px;border-radius:999px;display:none;
+  }
+  .paused .pausedtag{display:block}
+  .paused #thinkView,.paused #answerView{opacity:.25}
+  .controls{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding-top:8px}
+  .controls .btn{font-size:1.05rem}
+  .keys{text-align:center;font-size:.9rem;opacity:.6;margin:8px 0 0}
+
+  #end h1{font-size:clamp(2.6rem,8vw,5.5rem)}
+  .big{font-family:var(--display);font-weight:800;font-size:clamp(1.4rem,3vw,2.2rem);margin:0}
+
+  @media (prefers-reduced-motion:reduce){
+    .answer{animation:none}
+    #barFill,.btn{transition:none}
+  }
+  @media (max-width:560px){
+    .qcard,.answer{box-shadow:6px 6px 0 var(--coral)}
+    .answer{box-shadow:6px 6px 0 var(--ink)}
+  }
+</style>
+</head>
+<body>
+
+<!-- START -->
+<section id="start" class="screen active">
+  <div class="center">
+    <h1>Brain Break Trivia</h1>
+    <p class="lede">A question shows up, everybody gets time to think, then the answer is revealed. Press play and it keeps going on its own.</p>
+    <div class="settings">
+      <label>Think time
+        <select id="thinkSel">
+          <option value="20">20 seconds</option>
+          <option value="30" selected>30 seconds</option>
+          <option value="45">45 seconds</option>
+        </select>
+      </label>
+      <label>Runs for
+        <select id="lenSel">
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60" selected>1 hour</option>
+        </select>
+      </label>
+    </div>
+    <button class="btn primary playbig" id="playBtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>
+      Play
+    </button>
+  </div>
+</section>
+
+<!-- PLAY -->
+<section id="play" class="screen">
+  <div class="topbar">
+    <span class="chip" id="cat"></span>
+    <div class="meta"><span id="qnum"></span><span id="left"></span></div>
+  </div>
+
+  <div class="stage">
+    <div class="qcard" id="qtext" aria-live="polite"></div>
+    <div class="zone" id="zone">
+      <div id="thinkView">
+        <div class="count" id="count">30</div>
+        <div class="bar"><div id="barFill"></div></div>
+        <p class="hint">Think it over</p>
+      </div>
+      <div id="answerView" hidden>
+        <div class="answer">
+          <p class="alabel">Answer</p>
+          <p id="aText"></p>
+          <p id="aFact"></p>
+        </div>
+      </div>
+      <div class="pausedtag">Paused</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="pauseBtn" type="button">Pause</button>
+    <button class="btn" id="nextBtn" type="button">Reveal answer</button>
+    <button class="btn" id="soundBtn" type="button" aria-pressed="true">Sound on</button>
+    <button class="btn" id="fsBtn" type="button">Full screen</button>
+    <button class="btn" id="endBtn" type="button">End</button>
+  </div>
+  <p class="keys">Space pauses or resumes. Right arrow reveals the answer, then moves to the next question. F toggles full screen.</p>
+</section>
+
+<!-- END -->
+<section id="end" class="screen">
+  <div class="center">
+    <h1>That's the hour!</h1>
+    <p class="big" id="endStats"></p>
+    <button class="btn primary playbig" id="againBtn" type="button">Play again</button>
+  </div>
+</section>
+
+<script>
+/* ---------- QUESTION BANK ----------
+   Format: [category, question, answer, fun fact]
+   Add your own by copying a line. */
+const Q = [
+/* Animals */
+["Animals",`Which bird makes the longest migration of any animal, flying from pole to pole every year?`,`The Arctic tern`,`It travels around 44,000 miles (70,000 km) a year and gets to enjoy two summers.`],
+["Animals",`How many hearts does an octopus have?`,`Three`,`Two pump blood past the gills and one serves the rest of the body. Its blood is blue because it uses copper to carry oxygen.`],
+["Animals",`What is a group of flamingos called?`,`A flamboyance`,`Flamingos are pink because of pigments in the algae and tiny shrimp they eat.`],
+["Animals",`What color is a polar bear's skin?`,`Black`,`Black skin absorbs heat. The fur looks white, but each hair is a clear, hollow tube.`],
+["Animals",`What is the only mammal that can truly fly?`,`The bat`,`About one in five mammal species is a bat.`],
+["Animals",`Which tiny bird can fly backward?`,`The hummingbird`,`Its wings beat dozens of times every second, and it can hover in place.`],
+["Animals",`Which animal poops in cubes?`,`The wombat`,`The square shape keeps its droppings from rolling away, which helps it mark territory.`],
+["Animals",`Which animal has fingerprints so much like ours that they are hard to tell apart under a microscope?`,`The koala`,`Koalas evolved fingerprints on their own, probably to help them grip branches.`],
+["Animals",`What is a baby kangaroo called?`,`A joey`,`At birth it is about the size of a jellybean and crawls into its mother's pouch on its own.`],
+["Animals",`Which land animal is the fastest?`,`The cheetah`,`It can reach about 60 to 70 mph in short bursts, going from 0 to 60 in roughly three seconds.`],
+["Animals",`How many stomachs does a cow have?`,`One stomach with four chambers`,`The chambers are the rumen, reticulum, omasum, and abomasum.`],
+["Animals",`Which clever bird is famous for recognizing individual human faces and remembering them for years?`,`The crow`,`Crows can even pass the memory of a face along to other crows.`],
+["Animals",`Which salamander can regrow whole limbs, and even parts of its heart and brain?`,`The axolotl`,`It lives in lakes near Mexico City and is critically endangered in the wild.`],
+["Animals",`Which small sea creature punches so fast it creates tiny bubbles that collapse with a flash of heat and light?`,`The mantis shrimp`,`Some species can crack aquarium glass with one strike.`],
+["Animals",`What on a dog is as unique as a human fingerprint?`,`Its nose print`,`A dog's sense of smell is thousands of times stronger than ours.`],
+["Animals",`Adult cats meow mostly to communicate with whom?`,`Humans`,`Grown cats rarely meow at other cats. They mostly use it on us.`],
+["Animals",`What do some penguins give their mate as a gift?`,`A pebble`,`Gentoo penguins use pebbles to build nests, so a nice smooth one is a big deal.`],
+["Animals",`Why do sea otters hold hands while they sleep?`,`So they don't drift apart`,`A sleeping group of otters is called a raft.`],
+["Animals",`How many bones are in a giraffe's neck?`,`Seven`,`That is the same number humans have. Giraffe neck bones are just much longer.`],
+["Animals",`Which farm animal has rectangular pupils?`,`The goat`,`The wide, sideways pupils give it a huge view of its surroundings.`],
+["Animals",`Which sea mammals sleep with half of their brain at a time?`,`Dolphins`,`One half rests while the other keeps them swimming and surfacing to breathe.`],
+["Animals",`Which jellyfish is nicknamed the "immortal jellyfish"?`,`Turritopsis dohrnii`,`When stressed, it can turn back into a juvenile and start its life over.`],
+["Animals",`What is a group of owls called?`,`A parliament`,`A group of crows is called a murder.`],
+["Animals",`Which animal has the biggest heart?`,`The blue whale`,`Its heart can weigh around 400 pounds.`],
+["Animals",`Which mammal lays eggs?`,`The platypus`,`Echidnas do too. Male platypuses also have venomous spurs on their back legs.`],
+
+/* Space */
+["Space",`Which planet is the hottest in our solar system?`,`Venus`,`It averages about 870°F (465°C), hotter than Mercury, thanks to its thick carbon dioxide atmosphere.`],
+["Space",`About how long does sunlight take to reach Earth?`,`About 8 minutes and 20 seconds`,`When you look at the Sun, you see it as it was a little over eight minutes ago.`],
+["Space",`Which planet has a day that is longer than its year?`,`Venus`,`It spins once every 243 Earth days but circles the Sun in only 225.`],
+["Space",`Why are the astronauts' footprints still on the Moon after more than 50 years?`,`There is no wind or water to erase them`,`They could last millions of years.`],
+["Space",`Who was the first human in space?`,`Yuri Gagarin`,`He orbited Earth once in 1961, in a trip that lasted about 108 minutes.`],
+["Space",`Where is the biggest volcano in our solar system?`,`On Mars. It is called Olympus Mons.`,`It is about two and a half times taller than Mount Everest.`],
+["Space",`Which planet has the most known moons?`,`Saturn`,`It has well over 200 confirmed moons, and astronomers keep finding more.`],
+["Space",`What does a light-year measure?`,`Distance`,`One light-year is almost 6 trillion miles.`],
+["Space",`Which planet spins on its side?`,`Uranus`,`Its axis is tilted about 98 degrees, so it basically rolls around the Sun.`],
+["Space",`Which planet is less dense than water, so it would float in a big enough bathtub?`,`Saturn`,`It is mostly hydrogen and helium.`],
+["Space",`What color is a sunset on Mars?`,`Blue`,`Fine dust in the Martian sky scatters blue light toward your eyes near the setting Sun.`],
+["Space",`What is the name of the galaxy we live in?`,`The Milky Way`,`It holds somewhere between 100 and 400 billion stars.`],
+["Space",`A teaspoon of material from a neutron star would weigh about how much?`,`Billions of tons`,`Neutron stars are the crushed leftovers of giant exploded stars.`],
+
+/* Body */
+["Human Body",`What is the smallest bone in your body?`,`The stirrup (stapes), in your ear`,`It is only about 3 millimeters long and helps you hear.`],
+["Human Body",`What is the largest organ of the human body?`,`The skin`,`An adult's skin covers about 20 square feet.`],
+["Human Body",`How many bones does an adult human have?`,`206`,`Babies are born with around 300. Many of them fuse together as you grow.`],
+["Human Body",`Your brain is about 2% of your body weight. About how much of your energy does it use?`,`About 20%`,`That is why thinking hard can make you hungry.`],
+["Human Body",`If you stretched out the DNA from just one of your cells, about how long would it be?`,`About 2 meters (6 feet)`,`It is all packed inside a nucleus far too small to see without a microscope.`],
+["Human Body",`What iron-rich protein in your red blood cells carries oxygen?`,`Hemoglobin`,`The iron is what makes your blood red.`],
+["Human Body",`About how many times does your heart beat in one day?`,`About 100,000 times`,`That adds up to roughly 2.5 billion beats in a lifetime.`],
+["Human Body",`Why doesn't your stomach acid digest your own stomach?`,`A layer of mucus protects it`,`The stomach lining cells are also replaced every few days.`],
+["Human Body",`About how much of your DNA do you share with a chimpanzee?`,`About 98%`,`The small differences add up to a big gap in what our bodies and brains can do.`],
+["Human Body",`When do your fingerprints form?`,`Before you are born`,`Even identical twins have different fingerprints.`],
+["Human Body",`Every eye has a blind spot. Why don't you notice yours?`,`Your brain fills it in`,`The spot is where the optic nerve leaves the back of your eye.`],
+
+/* Geography */
+["Geography",`Which country is the largest in the world by area?`,`Russia`,`It stretches across 11 time zones.`],
+["Geography",`What is the smallest country in the world?`,`Vatican City`,`It is smaller than most college campuses.`],
+["Geography",`Which country has the most time zones when you count its overseas territories?`,`France`,`Its islands and territories scattered around the globe give it 12 or more.`],
+["Geography",`Which mountain is tallest when measured from its base to its peak?`,`Mauna Kea in Hawaii`,`Most of it is underwater. Mount Everest is just the highest above sea level.`],
+["Geography",`What is the deepest known point in the ocean?`,`Challenger Deep, in the Mariana Trench`,`It is about 36,000 feet down. Mount Everest would be covered by more than a mile of water.`],
+["Geography",`What is the capital of Australia?`,`Canberra`,`Lots of people guess Sydney, but Canberra was built specifically to be the capital.`],
+["Geography",`What is the largest desert on Earth?`,`Antarctica`,`A desert is defined by how little rain or snow falls, not by how hot it is.`],
+["Geography",`Which country has a flag that is not a rectangle?`,`Nepal`,`Its flag is made of two stacked triangles.`],
+["Geography",`Which lake is the deepest in the world?`,`Lake Baikal in Russia`,`It holds around 20% of the world's unfrozen surface fresh water.`],
+["Geography",`Which river is traditionally called the longest in the world?`,`The Nile`,`The Amazon carries far more water, and some people argue it is longer.`],
+["Geography",`Which continent has no countries?`,`Antarctica`,`Only scientists live there, and they rotate in and out.`],
+["Geography",`Which is the largest ocean?`,`The Pacific Ocean`,`It is bigger than all of Earth's land put together.`],
+["Geography",`Surprise! Which country has more pyramids than Egypt?`,`Sudan`,`Sudan has well over 200 ancient pyramids.`],
+
+/* History */
+["History",`Cleopatra lived closer in time to which: the building of the Great Pyramid, or the Moon landing?`,`The Moon landing`,`The Great Pyramid is about 4,500 years old. Cleopatra lived roughly 2,000 years ago.`],
+["History",`Which is older: Oxford University or the Aztec Empire?`,`Oxford University`,`Teaching was happening at Oxford by the late 1000s. The Aztec capital was founded in 1325.`],
+["History",`True or false: you can easily see the Great Wall of China from space with your naked eye.`,`False`,`It is long, but it is very narrow, and astronauts say it is hard to pick out.`],
+["History",`Who was the first person to win Nobel Prizes in two different sciences?`,`Marie Curie`,`She won in physics in 1903 and in chemistry in 1911.`],
+["History",`How long was the Wright brothers' first airplane flight?`,`About 12 seconds`,`It covered about 120 feet on December 17, 1903.`],
+["History",`Who invented basketball?`,`James Naismith`,`In 1891 he used peach baskets, and someone had to climb a ladder to get the ball after every score.`],
+["History",`Who is considered the world's first computer programmer?`,`Ada Lovelace`,`She wrote the first algorithm for a machine in the 1840s, a century before modern computers.`],
+["History",`Which wonder of the ancient world is still standing today?`,`The Great Pyramid of Giza`,`It was the tallest human-made structure for nearly 4,000 years.`],
+["History",`The Titanic sank in 1912. Did it have enough lifeboats for everyone aboard?`,`No. Only enough for about half.`,`The rules at the time were based on the size of the ship, not the number of people.`],
+["History",`Which writer is credited with inventing words like "lonely" and "eyeball"?`,`William Shakespeare`,`He is credited with introducing hundreds of words and phrases to English.`],
+["History",`In which country were the ancient Olympic Games held?`,`Greece, in a town called Olympia`,`The first recorded games were in 776 BCE.`],
+["History",`Who painted the Mona Lisa?`,`Leonardo da Vinci`,`It hangs in the Louvre in Paris and is smaller than most people expect.`],
+["History",`Around 1440, Johannes Gutenberg built what game-changing invention?`,`The printing press with movable type`,`It made books cheaper and helped ideas spread across Europe.`],
+
+/* Tech */
+["Tech",`What do the letters HTTP stand for?`,`HyperText Transfer Protocol`,`It is the set of rules your browser uses to talk to websites.`],
+["Tech",`In 1980, one gigabyte of storage was about the size of what?`,`A refrigerator`,`It weighed around 550 pounds. Today a gigabyte fits on something smaller than your fingernail.`],
+["Tech",`Where does the famous story of the first computer "bug" come from?`,`A real moth stuck in a computer in 1947`,`Grace Hopper's team taped it into their logbook at Harvard.`],
+["Tech",`How many bits are in a byte?`,`Eight`,`A single letter of text usually takes one byte.`],
+["Tech",`What do the letters in "QR code" stand for?`,`Quick Response`,`It was invented in 1994 to track car parts.`],
+["Tech",`What is the best-selling video game of all time?`,`Minecraft`,`It has sold more than 300 million copies.`],
+["Tech",`What do the letters in "Wi-Fi" stand for?`,`Nothing! It is just a brand name.`,`Many people think it means "wireless fidelity," but that was never official.`],
+
+/* Science */
+["Science",`What is the chemical symbol for gold?`,`Au`,`It comes from the Latin word "aurum."`],
+["Science",`What is the hardest natural substance on Earth?`,`Diamond`,`It is made of carbon atoms, just like the graphite in a pencil.`],
+["Science",`Which is hotter: a bolt of lightning or the surface of the Sun?`,`Lightning`,`A bolt can be about five times hotter than the Sun's surface, for a split second.`],
+["Science",`Does sound travel fastest through air, water, or steel?`,`Steel`,`It moves around 15 times faster through steel than through air.`],
+["Science",`Which food can last thousands of years without spoiling?`,`Honey`,`Archaeologists have found edible honey in ancient Egyptian tombs.`],
+["Science",`Which common fruit is slightly radioactive?`,`The banana`,`It contains potassium-40. It is completely harmless.`],
+["Science",`What is the most common gas in Earth's air?`,`Nitrogen`,`About 78% of the air is nitrogen and about 21% is oxygen.`],
+["Science",`What is the coldest possible temperature, called absolute zero?`,`-273.15°C (-459.67°F)`,`At that point, atoms would have almost no motion left.`],
+["Science",`About how fast does light travel?`,`About 186,000 miles per second`,`That is about 300,000 kilometers every second.`],
+["Science",`What shape is a rainbow, really?`,`A full circle`,`From the ground we only see the top arc. From an airplane you can sometimes see the whole circle.`],
+["Science",`What is the main cause of ocean tides?`,`The Moon's gravity`,`The Sun's gravity helps a little too.`],
+["Science",`Why is the sky blue?`,`Air scatters blue light more than other colors`,`The shorter blue waves bounce around the sky and reach your eyes from every direction.`],
+["Science",`Water boils at 212°F at sea level. At the top of Mount Everest, is the boiling point higher or lower?`,`Lower, around 160°F (71°C)`,`Less air pressure means water boils at a lower temperature, so cooking takes longer.`],
+
+/* Nature */
+["Nature",`What is the largest known living thing by area, and what kind of organism is it?`,`A honey fungus in Oregon`,`It covers about 2,400 acres and may be thousands of years old.`],
+["Nature",`What nickname do scientists use for the underground fungus networks that connect trees?`,`The Wood Wide Web`,`Trees can trade nutrients through them.`],
+["Nature",`What is the tallest type of tree?`,`The coast redwood`,`The tallest one found, named Hyperion, stands about 380 feet tall.`],
+["Nature",`Which is older: sharks or trees?`,`Sharks`,`Sharks have been around for roughly 450 million years. Trees are about 350 million.`],
+["Nature",`Which lived closer in time to T. rex: Stegosaurus or humans today?`,`Humans today`,`Stegosaurus lived about 150 million years ago and T. rex about 68 million years ago.`],
+["Nature",`Which animals alive today are the living descendants of dinosaurs?`,`Birds`,`Every sparrow and chicken is a kind of dinosaur.`],
+
+/* Food */
+["Food",`Which spice is the most expensive by weight?`,`Saffron`,`It comes from crocus flowers, and each thread is picked by hand.`],
+["Food",`Peanuts are not actually nuts. What are they?`,`Legumes`,`They are relatives of beans and lentils and grow underground.`],
+["Food",`True or false: botanically, a banana is a berry but a strawberry is not.`,`True`,`Botanists define berries by how the fruit forms from the flower, not by how it looks.`],
+["Food",`In the 1830s, ketchup was sold as what?`,`Medicine`,`It was marketed as a cure for indigestion.`],
+["Food",`What color were the first carrots people grew?`,`Purple and yellow`,`Orange carrots came along later.`],
+["Food",`Which fruit is about 25% air, which is why it floats?`,`The apple`,`That is why apple bobbing works.`],
+["Food",`What is chocolate made from?`,`Cacao beans`,`They are seeds from the pods of the cacao tree.`],
+["Food",`Which Italian city is famous as the birthplace of pizza?`,`Naples`,`Pizza Margherita was named after a queen in 1889, as the story goes.`],
+
+/* Words */
+["Words",`What is the most common letter in the English language?`,`E`,`It shows up in about 1 of every 8 letters in typical English text.`],
+["Words",`What 10-letter word can be typed using only the top row of a keyboard?`,`Typewriter`,`Every letter in it sits on the top row of the keyboard.`],
+["Words",`Which language has the most native speakers in the world?`,`Mandarin Chinese`,`Over 900 million people speak it as their first language.`],
+["Words",`Which letter does not appear in the name of any U.S. state?`,`Q`,`Go ahead and check. It is not there.`],
+["Words",`What is the national animal of Scotland?`,`The unicorn`,`It has been a symbol of Scotland for more than 600 years.`],
+["Words",`There is a real, very long word for the fear of long words. It is an ironic joke. Roughly how long is it?`,`35 letters: hippopotomonstrosesquippedaliophobia`,`Nobody should be scared of it, but plenty of people are.`],
+
+/* Brain Teasers */
+["Brain Teasers",`What is the only even prime number?`,`Two`,`Every other even number can be divided by 2, so it cannot be prime.`],
+["Brain Teasers",`Why do bees build honeycombs out of hexagons?`,`Hexagons fit together with no gaps and use the least wax`,`Bees found the most efficient shape millions of years before mathematicians proved it.`],
+["Brain Teasers",`A farmer has 17 sheep. All but 9 run away. How many are left?`,`Nine`,`"All but 9" means 9 stayed.`],
+["Brain Teasers",`What has keys but can't open any locks?`,`A piano (or a keyboard)`,`Both have lots of keys and no locks.`],
+["Brain Teasers",`In a room of how many people is there about a 50% chance that two share a birthday?`,`23 people`,`It feels like it should take way more, but the number of possible pairs adds up fast.`],
+["Brain Teasers",`What is a googol?`,`A 1 followed by 100 zeros`,`The search engine Google got its name from a misspelling of it.`],
+["Brain Teasers",`What number comes next? 1, 1, 2, 3, 5, 8, 13, ...`,`21`,`This is the Fibonacci sequence. Each number is the sum of the two before it, and it shows up in sunflower seeds and pinecones.`],
+["Brain Teasers",`What gets wetter the more it dries?`,`A towel`,`Think about what it is for.`],
+["Brain Teasers",`What can you catch but not throw?`,`A cold`,`Bonus points if you said a breath of fresh air.`],
+
+/* Sports */
+["Sports",`How many rings are in the Olympic logo?`,`Five`,`They stand for the five inhabited continents represented at the Games.`],
+["Sports",`How long is a marathon?`,`26.2 miles`,`The odd distance was set at the 1908 Olympics in London.`],
+["Sports",`Which racket sport has a flying object that has been clocked at over 300 mph?`,`Badminton`,`The shuttlecock slows down very quickly after a smash because of its feathers.`],
+
+/* Arts */
+["Arts",`How many keys are on a standard piano?`,`88`,`That is 52 white keys and 36 black keys.`],
+["Arts",`How many strings does a standard concert harp have?`,`47`,`Pedals change the pitch of the strings.`]
+];
+
+const ICONS = {"Animals":"🐾","Space":"🚀","Human Body":"🧬","Geography":"🌍","History":"🏛️","Tech":"💻","Science":"⚗️","Nature":"🌿","Food":"🍕","Words":"🔤","Brain Teasers":"🧩","Sports":"🏅","Arts":"🎨"};
+
+/* ---------- STATE ---------- */
+const REVEAL_MS = 12000;
+const $ = id => document.getElementById(id);
+let thinkMs = 30000, sessionMs = 3600000;
+let sessionElapsed = 0, phaseElapsed = 0;
+let phase = 'idle';           // idle | think | reveal | done
+let running = false;
+let qNum = 0, queue = [], current = null;
+let last = 0, timer = null, soundOn = true, ac = null, wake = null;
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+function fmt(ms){ const s=Math.max(0,Math.ceil(ms/1000)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+
+/* ---------- FLOW ---------- */
+function start(){
+  thinkMs = parseInt($('thinkSel').value,10)*1000;
+  sessionMs = parseInt($('lenSel').value,10)*60000;
+  sessionElapsed = 0; qNum = 0; queue = shuffle(Q.slice());
+  running = true; setPauseUI();
+  try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended') ac.resume(); }catch(e){}
+  getWake();
+  show('play');
+  nextQuestion();
+  last = performance.now();
+  if(!timer) timer = setInterval(tick, 100);
+}
+
+function nextQuestion(){
+  if(sessionElapsed >= sessionMs){ finish(); return; }
+  if(!queue.length) queue = shuffle(Q.slice());
+  current = queue.pop(); qNum++;
+  phase = 'think'; phaseElapsed = 0;
+  $('cat').textContent = (ICONS[current[0]]||'') + ' ' + current[0];
+  $('qtext').textContent = current[1];
+  $('qnum').textContent = 'Question ' + qNum;
+  $('thinkView').hidden = false; $('answerView').hidden = true;
+  $('zone').classList.remove('low');
+  $('nextBtn').textContent = 'Reveal answer';
+  updateUI();
+}
+
+function reveal(){
+  phase = 'reveal'; phaseElapsed = 0;
+  $('aText').textContent = current[2];
+  $('aFact').textContent = current[3];
+  $('thinkView').hidden = true; $('answerView').hidden = false;
+  $('nextBtn').textContent = 'Next question';
+  chime();
+}
+
+function advance(){
+  if(phase==='think') reveal();
+  else if(phase==='reveal') nextQuestion();
+}
+
+function finish(){
+  phase = 'done'; running = false;
+  releaseWake();
+  $('endStats').textContent = 'You got through ' + (qNum) + ' questions.';
+  show('end');
+}
+
+function tick(){
+  const now = performance.now();
+  let dt = Math.min(now - last, 3000); last = now;
+  if(!running || phase==='idle' || phase==='done') return;
+  sessionElapsed += dt; phaseElapsed += dt;
+  if(phase==='think' && phaseElapsed >= thinkMs) reveal();
+  else if(phase==='reveal' && phaseElapsed >= REVEAL_MS) nextQuestion();
+  updateUI();
+}
+
+function updateUI(){
+  $('left').textContent = fmt(sessionMs - sessionElapsed) + ' left';
+  if(phase==='think'){
+    const remain = thinkMs - phaseElapsed;
+    $('count').textContent = Math.max(0, Math.ceil(remain/1000));
+    $('barFill').style.width = Math.max(0, remain/thinkMs*100) + '%';
+    $('zone').classList.toggle('low', remain <= 5000);
+  }
+}
+
+/* ---------- CONTROLS ---------- */
+function setPauseUI(){
+  $('pauseBtn').textContent = running ? 'Pause' : 'Resume';
+  $('play').classList.toggle('paused', !running && phase!=='done');
+}
+function togglePause(){
+  if(phase==='idle' || phase==='done') return;
+  running = !running; last = performance.now(); setPauseUI();
+}
+function chime(){
+  if(!soundOn || !ac) return;
+  const t = ac.currentTime;
+  [659.25, 880].forEach((f,i)=>{
+    const o = ac.createOscillator(), g = ac.createGain(), s = t + i*0.16;
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, s);
+    g.gain.exponentialRampToValueAtTime(0.12, s+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, s+0.5);
+    o.connect(g); g.connect(ac.destination);
+    o.start(s); o.stop(s+0.55);
+  });
+}
+async function getWake(){ try{ if('wakeLock' in navigator) wake = await navigator.wakeLock.request('screen'); }catch(e){} }
+function releaseWake(){ try{ if(wake){ wake.release(); wake=null; } }catch(e){} }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && (phase==='think'||phase==='reveal')) getWake(); });
+
+function toggleFS(){
+  if(document.fullscreenElement) document.exitFullscreen();
+  else if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+}
+
+$('playBtn').onclick = start;
+$('againBtn').onclick = ()=>{ show('start'); };
+$('pauseBtn').onclick = togglePause;
+$('nextBtn').onclick = advance;
+$('fsBtn').onclick = toggleFS;
+$('soundBtn').onclick = ()=>{
+  soundOn = !soundOn;
+  $('soundBtn').textContent = soundOn ? 'Sound on' : 'Sound off';
+  $('soundBtn').setAttribute('aria-pressed', soundOn);
+};
+$('endBtn').onclick = ()=>{
+  if(confirm('End the session?')){ phase='done'; running=false; releaseWake(); show('start'); }
+};
+document.addEventListener('keydown', e=>{
+  if(!$('play').classList.contains('active')) return;
+  if(e.code==='Space'){ e.preventDefault(); togglePause(); }
+  else if(e.code==='ArrowRight'){ e.preventDefault(); if(running) advance(); }
+  else if(e.key==='f' || e.key==='F'){ toggleFS(); }
+});
+</script>
+</body>
+</html>
